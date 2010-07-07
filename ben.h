@@ -36,7 +36,15 @@ struct be_node {
 	} u;
 };
 
-struct be_node *be_dict_lookup(const struct be_dict *dict, const struct be_str *key);
+
+/** Dict convinience functions **/
+struct be_node *be_insert(struct be_node *n,
+		const char *key, const struct be_node *val);
+struct be_node *be_lookup(const struct be_node *n, char *str);
+
+/** Direct interface **/
+struct be_node *be_dict_lookup(const struct be_dict *dict, 
+		const struct be_str *key);
 struct be_node *bdecode(const char *estr, size_t len, const char **ep);
 void be_print(struct be_node *be, FILE *out);
 

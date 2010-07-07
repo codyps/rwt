@@ -9,9 +9,76 @@
 static const char usage_str[] =
 "usage: %s <torrent> -d <dict_key> -l <list_index>\n";
 
+
+#define FN_USE(...) do {                  \
+	fprintf(stderr, "%s : ", __func__); \
+	fprintf(stderr, __VA_ARGS__);       \
+} while(0)
+
 static void usage(char *name)
 {
 	fprintf(stderr, usage_str, name);
+}
+
+int rm_fn(struct be_node *t, int argc, char **argv)
+{
+	return 0;
+}
+
+int add1_fn(struct be_node *t, int argc, char **argv)
+{
+	if (argc < 1) {
+		FN_USE("need 1 tracker to add");
+		return 0;
+	}
+
+
+	struct be_str tr = { strlen(argv[0]), argv[0] };
+	struct be_node n_tr = { BE_STR };
+	n_tr.u.s = &tr;
+
+	struct be_node *a = be_insert(t, "announce", &n_tr);
+
+
+	struct be_node *al = be_lookup(t, "announce-list");
+
+
+	return 1;
+}
+
+int t_proc(struct be_node *t, int argc, char **argv)
+{
+	if (argc == 0) {
+		// show current trackers.
+		return 0;
+	}
+
+	int i;
+	for(i = 0; i < argc; i++) {
+		if (*argv[i] != '-') {
+			fprintf(stderr, "Unexpected argument '%s'\n.",
+					argv[i]);
+			return 1;
+		}
+
+		int ret;
+		switch(*(argv[i] + 1)) {
+		case 'a':
+			ret = add1_fn(t, argc, argv);
+			break;
+		case 'r':
+			ret = rm_fn(t, argc, argv);
+		}
+
+		if (ret) {
+			argc += ret;
+			argv -= ret;
+		} else {
+			fprintf(stderr, "Bad option '%c'.\n", *argv[i]);
+			return 1;
+		}
+	}
+	return 0;
 }
 
 int t_show(struct be_node *tf, int argc, char **argv)
@@ -65,8 +132,8 @@ int main(int argc, char **argv)
 	fseek(tf, 0, SEEK_SET);
 	size_t read = fread(tf_t, tf_sz, 1, tf);
 	if (read != 1) {
-		// die
-		fprintf(stderr, "problemz %lu.\n", (unsigned long)read);
+		fprintf(stderr, "Failed to read entire file, %zi.\n", read);
+		return 1;
 	}
 
 	const char *ep;

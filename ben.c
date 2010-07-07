@@ -114,6 +114,33 @@ int be_str_cmp(const void *a1, const void *a2)
 	}
 }
 
+struct be_node *be_lookup(const struct be_node *n, char *str)
+{
+
+	if (n->type != BE_DICT) {
+		fprintf(stderr, "attempted lookup on non-dict node.\n");
+		return 0;
+	}
+
+	const struct be_dict *dict = n->u.d;
+
+	struct be_str s = { strlen(str), str };
+
+	return be_dict_lookup(dict, &s);
+}
+
+struct be_node *be_insert(struct be_node *n,
+		const char *key, const struct be_node *val)
+{
+	return 0;
+}
+
+struct be_node *be_dict_insert(struct be_dict *dict, 
+		const struct be_str *key, const struct be_node *val)
+{
+	return 0;	
+}
+
 /* Returns the first value with a matching key */
 struct be_node *be_dict_lookup(const struct be_dict *dict,
 		const struct be_str *key)
@@ -135,12 +162,6 @@ struct be_node *be_dict_lookup(const struct be_dict *dict,
 void be_print(struct be_node *be, FILE *out)
 {
 	be_print_indent(be, out, 0);
-}
-
-struct be_node *be_dict_insert(const struct be_dict *dict,
-		const struct be_node *data)
-{
-	return 0;
 }
 
 struct be_node *be_dict_remove(const struct be_dict *dict,
