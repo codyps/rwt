@@ -19,7 +19,7 @@ clean :
 	$(RM) rwt $(OBJ)
 
 test : rwt
-	./rwt test.torrent show
+	./rwt test.torrent 'announce-list'
 
 rebuild: | clean build
 retest: | rebuild test
