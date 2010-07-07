@@ -46,6 +46,31 @@ int add1_fn(struct be_node *t, int argc, char **argv)
 	return 1;
 }
 
+int t_show(struct be_node *tf, int argc, char **argv)
+{
+	if (argc > 1 && *argv[1] != '*') {
+		if (tf->type != BE_DICT) {
+			fprintf(stderr,"not dict.\n");
+			return -1;
+		}
+		struct be_dict *d = tf->u.d;
+
+		struct be_str s = { strlen(argv[1]), argv[1] };
+
+		struct be_node *val = be_dict_lookup(d, &s);
+		if (val) {
+			be_print(val, stdout);
+			return 2;
+		} else {
+			fprintf(stderr, "Not found: %s\n", argv[1]);
+			return 2;
+		}
+	} else {
+		be_print(tf, stdout);
+		return 1;
+	}
+}
+
 int t_proc(struct be_node *t, int argc, char **argv)
 {
 	if (argc == 0) {
@@ -68,39 +93,21 @@ int t_proc(struct be_node *t, int argc, char **argv)
 			break;
 		case 'r':
 			ret = rm_fn(t, argc, argv);
+			break;
+		case 'p':
+			ret = t_show(t, argc, argv);
 		}
 
-		if (ret) {
-			argc += ret;
-			argv -= ret;
-		} else {
+		if (ret > 0) {
+			argc -= ret;
+			argv += ret;
+		} else if (!ret) {
+			argc -= 1;
+			argv += 1;
+		} else { /* ret < 0 */
 			fprintf(stderr, "Bad option '%c'.\n", *argv[i]);
 			return 1;
 		}
-	}
-	return 0;
-}
-
-int t_show(struct be_node *tf, int argc, char **argv)
-{
-	
-	if (argc == 2) {
-		if (tf->type != BE_DICT) {
-			fprintf(stderr,"not dict.\n");
-			return 1;
-		}
-		struct be_dict *d = tf->u.d;
-
-		struct be_str s = { strlen(argv[1]), argv[1] };
-
-		struct be_node *val = be_dict_lookup(d, &s);
-		if (val) {
-			be_print(val, stdout);
-		} else {
-			fprintf(stderr, "Not found: %s\n", argv[1]);
-		}
-	} else {
-		be_print(tf, stdout);
 	}
 	return 0;
 }
@@ -140,5 +147,5 @@ int main(int argc, char **argv)
 	struct be_node *tf_be = bdecode(tf_t, tf_sz, &ep);
 
 	//char *spec = argv[2];
-	return t_show(tf_be, argc-1, argv+1);
+	return t_proc(tf_be, argc-2, argv+2);
 }
