@@ -19,7 +19,7 @@ clean :
 	$(RM) rwt $(OBJ)
 
 test : rwt
-	./rwt test.torrent 'announce-list'
+	./rwt test.torrent -p '*' -a 'new_tracker_omg' -p '*'
 
 rebuild: | clean build
 retest: | rebuild test
