@@ -116,32 +116,76 @@ int be_str_cmp(const void *a1, const void *a2)
 
 struct be_node *be_lookup(const struct be_node *n, char *str)
 {
-
 	if (n->type != BE_DICT) {
 		fprintf(stderr, "attempted lookup on non-dict node.\n");
 		return 0;
 	}
 
 	const struct be_dict *dict = n->u.d;
-
-	struct be_str s = { strlen(str), str };
+	const struct be_str s = { strlen(str), str };
 
 	return be_dict_lookup(dict, &s);
 }
 
-struct be_node *be_insert(struct be_node *n,
+struct be_node *be_find(struct be_node *n,
 		const char *key, const struct be_node *val)
 {
-	return 0;
+	if (n->type != BE_DICT) {
+		fprintf(stderr, "attempted lookup on non-dict node.\n");
+		return 0;
+	}
+	
+	const struct be_dict *dict = n->u.d;
+	const struct be_str s = { strlen(key), key };
+	return be_dict_find(dict, &s, val);
 }
 
-struct be_node *be_dict_insert(struct be_dict *dict, 
+/**
+ * Look up key in dict.
+ * If found:
+ * 	return a pointer to the val the already exsisting key
+ * 	is paired with.
+ * Else if not found:
+ * 	If val is non-null, insert the key:val pair and return
+ * 		a pointer to the inserted val
+ * 	Otherwise return 0.
+ *
+ * On error: returns 0.
+ */
+struct be_node *be_dict_find(struct be_dict *dict, 
 		const struct be_str *key, const struct be_node *val)
 {
-	return 0;	
+	size_t i;
+	for(i =0; i < dict->len; i++) {
+		const struct be_str *lkey = dict->keys[i];
+		ssize_t diff = lkey->len - key->len;
+		if (!diff) {
+			int x = memcmp(lkey->data, key->data, key->len);
+			if (!x) {
+				return dict->vals[i];
+			}
+		}
+	}
+
+	if (!val)
+		return 0;
+
+	/* FIXME: all the stuff before is duplicated from be_dict_lookup */
+	dict->len = i;
+	dict->keys = realloc(dict->keys, i * sizeof(*dict->keys));
+	dict->vals = realloc(dict->vals, i * sizeof(*dict->vals));
+
+	if (!dict->keys || !dict->vals)
+		return 0;
+
+	/* FIXME: is appending to the end acceptable? */
+	dict->keys[i] = key;
+	dict->vals[i] = val;
+
+	return val;
 }
 
-/* Returns the first value with a matching key */
+/* Returns the first value with a matching key, 0 if not found. */
 struct be_node *be_dict_lookup(const struct be_dict *dict,
 		const struct be_str *key)
 {
