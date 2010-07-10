@@ -22,33 +22,57 @@ static void usage(char *name)
 
 int rm_fn(struct be_node *t, int argc, char **argv)
 {
-	return 0;
+	return -1;
 }
 
 int add1_fn(struct be_node *t, int argc, char **argv)
 {
 	if (argc < 1) {
 		FN_USE("need 1 tracker to add");
-		return 0;
+		return -1;
 	}
 
+	char *tracker = argv[1];
 
-	struct be_str tr = { strlen(argv[0]), argv[0] };
-	struct be_node n_tr = { BE_STR };
-	n_tr.u.s = &tr;
+	fprintf(stderr, "ADD: '%s'\n", tracker);
 
-	struct be_node *a = be_insert(t, "announce", &n_tr);
+	struct be_str *tr = malloc(sizeof(*tr));
+	tr->len = strlen(tracker);
+	tr->data = tracker;
 
+	struct be_node *n_tr = malloc(sizeof(*n_tr));
+	n_tr->type = BE_STR;
+	n_tr->u.s = tr;
+
+	struct be_node *a = be_find(t, "announce", n_tr);
+	if (!a) {
+		fprintf(stderr, "ADD: no mem\n");
+		return -1;
+	} else if (a == n_tr) {
+		fprintf(stderr, "ADD: '%s' => 'announce'.\n", tracker);
+		return 2;
+	} else {
+		fprintf(stderr, "ADD: 'announce' already used.\n");
+		/* TODO: check if identical to the one we are adding? */
+
+	}
 
 	struct be_node *al = be_lookup(t, "announce-list");
+	if (!al) {
+		fprintf(stderr, "ADD: 'announce-list' not found.\n");
+		return -1;
+	}
 
-
-	return 1;
+	return 2;
 }
 
-int t_show(struct be_node *tf, int argc, char **argv)
+static int t_show(struct be_node *tf, int argc, char **argv)
 {
-	if (argc > 1 && *argv[1] != '*') {
+	if (argc > 1) {
+		if (*argv[1] == '*') {
+			be_print(tf, stdout);
+			return 2;
+		}
 		if (tf->type != BE_DICT) {
 			fprintf(stderr,"not dict.\n");
 			return -1;
@@ -71,23 +95,23 @@ int t_show(struct be_node *tf, int argc, char **argv)
 	}
 }
 
-int t_proc(struct be_node *t, int argc, char **argv)
+static int t_proc(struct be_node *t, int argc, char **argv)
 {
 	if (argc == 0) {
 		// show current trackers.
 		return 0;
 	}
 
-	int i;
-	for(i = 0; i < argc; i++) {
-		if (*argv[i] != '-') {
+	for( ;argc > 0;) {
+		char *cur_opt = *argv;
+		if ( *cur_opt != '-' || *cur_opt == '\0') {
 			fprintf(stderr, "Unexpected argument '%s'\n.",
-					argv[i]);
+					cur_opt);
 			return 1;
 		}
 
 		int ret;
-		switch(*(argv[i] + 1)) {
+		switch(cur_opt[1]) {
 		case 'a':
 			ret = add1_fn(t, argc, argv);
 			break;
@@ -105,7 +129,7 @@ int t_proc(struct be_node *t, int argc, char **argv)
 			argc -= 1;
 			argv += 1;
 		} else { /* ret < 0 */
-			fprintf(stderr, "Bad option '%c'.\n", *argv[i]);
+			fprintf(stderr, "Bad option '%c'.\n", *cur_opt);
 			return 1;
 		}
 	}
