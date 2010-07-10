@@ -38,14 +38,14 @@ struct be_node {
 
 /** Dict convinience functions **/
 struct be_node *be_find(struct be_node *n,
-		const char *key, const struct be_node *val);
+		char *key, struct be_node *val);
 
 /* NOTE: str is non-const due to data structure limitaions */
 struct be_node *be_lookup(const struct be_node *n, char *str);
 
 /** Direct interface **/
 struct be_node *be_dict_find(struct be_dict *dict, 
-		const struct be_str *key, const struct be_node *val);
+		struct be_str *key, struct be_node *val);
 struct be_node *be_dict_lookup(const struct be_dict *dict, 
 		const struct be_str *key);
 struct be_node *bdecode(const char *estr, size_t len, const char **ep);

@@ -128,15 +128,15 @@ struct be_node *be_lookup(const struct be_node *n, char *str)
 }
 
 struct be_node *be_find(struct be_node *n,
-		const char *key, const struct be_node *val)
+		char *key, struct be_node *val)
 {
 	if (n->type != BE_DICT) {
 		fprintf(stderr, "attempted lookup on non-dict node.\n");
 		return 0;
 	}
 	
-	const struct be_dict *dict = n->u.d;
-	const struct be_str s = { strlen(key), key };
+	struct be_dict *dict = n->u.d;
+	struct be_str s = { strlen(key), key };
 	return be_dict_find(dict, &s, val);
 }
 
@@ -153,7 +153,7 @@ struct be_node *be_find(struct be_node *n,
  * On error: returns 0.
  */
 struct be_node *be_dict_find(struct be_dict *dict, 
-		const struct be_str *key, const struct be_node *val)
+		struct be_str *key, struct be_node *val)
 {
 	size_t i;
 	for(i =0; i < dict->len; i++) {
