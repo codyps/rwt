@@ -36,14 +36,41 @@ struct be_node {
 	} u;
 };
 
-/** Dict convinience functions **/
+
+/* be_dict_find wrapper.
+ */
 struct be_node *be_find(struct be_node *n,
 		char *key, struct be_node *val);
 
-/* NOTE: str is non-const due to data structure limitaions */
+/* be_dict_lookup wrapper.
+ * NOTE: str is non-const due to data structure limitaions
+ */ 
 struct be_node *be_lookup(const struct be_node *n, char *str);
 
-/** Direct interface **/
+int be_str_cmp(const struct be_str *a1, const struct be_str *a2);
+
+/** be_list_find_str
+ * If str exsists in list:
+ * 	return str that is in list.
+ * Else, insert str into list:
+ * 	return newly inserted str.
+ * On error, return 0.
+ */
+struct be_node *be_list_find_str(struct be_list *list,
+		struct be_str *str);
+
+/**
+ * Look up key in dict.
+ * If found:
+ * 	return a pointer to the val the already exsisting key
+ * 	is paired with.
+ * Else if not found:
+ * 	If val is non-null, insert the key:val pair and return
+ * 		a pointer to the inserted val
+ * 	Otherwise return 0.
+ *
+ * On error: returns 0.
+ */
 struct be_node *be_dict_find(struct be_dict *dict, 
 		struct be_str *key, struct be_node *val);
 struct be_node *be_dict_lookup(const struct be_dict *dict, 

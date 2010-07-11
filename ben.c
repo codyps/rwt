@@ -97,7 +97,7 @@ void be_print_indent(struct be_node *be, FILE *out, size_t indent)
 	be_print_node(be, out, indent);
 }
 
-int be_str_cmp(const void *a1, const void *a2)
+int be_str_cmp(const struct be_str *a1, const struct be_str *a2)
 {
 	/* a1 < a2 = -num
 	 * a1 = a2 = 0
@@ -158,19 +158,17 @@ struct be_node *be_dict_find(struct be_dict *dict,
 	size_t i;
 	for(i =0; i < dict->len; i++) {
 		const struct be_str *lkey = dict->keys[i];
-		ssize_t diff = lkey->len - key->len;
-		if (!diff) {
-			int x = memcmp(lkey->data, key->data, key->len);
-			if (!x) {
-				return dict->vals[i];
-			}
-		}
+
+		if (!be_str_cmp( lkey, key))
+			return dict->vals[i];
 	}
 
 	if (!val)
 		return 0;
 
-	/* FIXME: all the stuff before is duplicated from be_dict_lookup */
+	/* FIXME: all the stuff above this point is duplicated from 
+	 * be_dict_lookup */
+
 	dict->len = i;
 	dict->keys = realloc(dict->keys, i * sizeof(*dict->keys));
 	dict->vals = realloc(dict->vals, i * sizeof(*dict->vals));
