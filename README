@@ -1,0 +1,18 @@
+rwt - ReWriteTorrent
+
+Allows the modification of a torrentfile via command line flags.
+
+* Note: presently does not support the '-d' option.
+
+===============================
+
+usage: ./rwt <torrent> [options]
+options:
+   -p dict_key     print torrent
+   -a tracker      add tracker
+   -d tracker      del tracker
+   -w[mode]        write torrent to a file
+       modes:
+           f filename    to filename
+           -             to stdout
+              (blank)    to original torrent
