@@ -185,7 +185,7 @@ int add1_fn(struct be_node *t, int argc, char **argv)
 	struct be_list *al = al_n->u.l;
 
 	al->len ++;
-	al->nodes = realloc(al_nodes, al->len * sizeof(*al->nodes));
+	al->nodes = realloc(al->nodes, al->len * sizeof(*al->nodes));
 
 	al->nodes[al->len - 1] = n_tr;
 
