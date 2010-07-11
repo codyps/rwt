@@ -7,7 +7,11 @@
 
 #define NAME "rwt"
 static const char usage_str[] =
-"usage: %s <torrent> -d <dict_key> -l <list_index>\n";
+"usage: %s <torrent> [options]\n"
+"options:\n"
+"	-p dict_key     print torrent\n"
+"	-a tracker      add tracker\n"
+"	-d tracker      del tracker\n";
 
 
 #define FN_USE(...) do {                  \
