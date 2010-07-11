@@ -26,6 +26,62 @@ int debug = 0;
 	}\
 } while(0)
 
+static void be_write_str(struct be_str *str, FILE *out)
+{
+	fprintf(out, "%zu:", str->len);
+	fwrite(str->data, str->len, 1, out);
+}
+
+
+static void be_write_int(long long i, FILE *out)
+{
+	fprintf(out, "i%llde", i);
+}
+
+static void be_write_list(struct be_list *l, FILE *out);
+static void be_write_dict(struct be_dict *dict, FILE *out)
+{
+	fputc('d', out);
+	size_t i;
+	for(i = 0; i < dict->len; i++) {
+		struct be_str *bstr = dict->keys[i];
+		be_write_str(bstr, out);
+		be_write(dict->vals[i], out);
+	}
+	fputc('e', out);
+}
+
+static void be_write_list(struct be_list *list, FILE *out)
+{
+	size_t i;
+	fputc('l', out);
+	for(i = 0; i < list->len; i++) {
+		fputc('\n', out);
+		be_write(list->nodes[i], out);
+	}
+	fputc('e', out);
+}
+
+void be_write(struct be_node *be, FILE *out)
+{
+	switch(be->type) {
+	case BE_INT:
+		be_write_int(be->u.i, out);
+		break;
+	case BE_STR:
+		be_write_str(be->u.s, out);
+		break;
+	case BE_DICT:
+		be_write_dict(be->u.d, out);
+		break;
+	case BE_LIST:
+		be_write_list(be->u.l, out);
+		break;
+	default:
+		DIE("unknown BE type %d\n", be->type);
+	}
+}
+
 void be_print_node(struct be_node *be, FILE *out, size_t indent);
 void be_print_indent(struct be_node *be, FILE *out, size_t indent);
 void spaces(size_t num, FILE *out)
@@ -64,7 +120,7 @@ void be_print_dict(struct be_dict *dict, FILE *out, size_t indent)
 void be_print_list(struct be_list *list, FILE *out, size_t indent)
 {
 	size_t i;
-	fputs("l", out);
+	fputc('l', out);
 	for(i = 0; i < list->len; i++) {
 		fputc('\n', out);
 		be_print_indent(list->nodes[i], out, indent + 1);

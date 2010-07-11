@@ -76,6 +76,11 @@ struct be_node *be_dict_find(struct be_dict *dict,
 struct be_node *be_dict_lookup(const struct be_dict *dict, 
 		const struct be_str *key);
 struct be_node *bdecode(const char *estr, size_t len, const char **ep);
+
+/* Writes pretty printed data to out */
 void be_print(struct be_node *be, FILE *out);
+
+/* Writes bencoded data to out */
+void be_write(struct be_node *be, FILE *out);
 
 #endif /* BEN_H_ */
