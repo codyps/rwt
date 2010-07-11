@@ -170,8 +170,6 @@ int add1_fn(struct be_node *t, int argc, char **argv)
 	} else if (al_n == new_al_n) {
 		fprintf(stderr, "ADD: created 'announce-list'.\n");
 	} else {
-		free(new_al);
-		free(new_al_n);
 		fprintf(stderr, "ADD: 'announce-list' already exsists.\n");
 	}
 
@@ -187,7 +185,11 @@ int add1_fn(struct be_node *t, int argc, char **argv)
 	al->len ++;
 	al->nodes = realloc(al->nodes, al->len * sizeof(*al->nodes));
 
-	al->nodes[al->len - 1] = n_tr;
+	new_al->len = 1;
+	new_al->nodes = malloc(sizeof(*new_al->nodes));
+	new_al->nodes[0] = n_tr;
+
+	al->nodes[al->len - 1] = new_al_n;
 
 	return 2;
 }
