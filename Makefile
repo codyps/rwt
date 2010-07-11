@@ -20,6 +20,7 @@ clean :
 	$(RM) rwt out.* $(OBJ)
 
 test : rwt
+	$(RM) out.*
 	./rwt test.torrent -a 'new_tracker_omg' -p '*' -wf out.torrent
 	./rwt out.torrent -p '*'
 
