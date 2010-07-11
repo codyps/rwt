@@ -56,7 +56,6 @@ static void be_write_list(struct be_list *list, FILE *out)
 	size_t i;
 	fputc('l', out);
 	for(i = 0; i < list->len; i++) {
-		fputc('\n', out);
 		be_write(list->nodes[i], out);
 	}
 	fputc('e', out);
