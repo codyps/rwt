@@ -96,7 +96,9 @@ int del_fn(struct be_node *t, int argc, char **argv)
 		struct be_node *ag_n = al->nodes[i];
 	
 		if (ag_n->type != BE_LIST) {
-			fprintf(stderr, "WARN: announce group %zu is not a list.\n", i);
+			fprintf(stderr, 
+				"WARN: announce group %zu is not a list.\n",
+				i);
 			continue;
 		}
 
@@ -107,7 +109,10 @@ int del_fn(struct be_node *t, int argc, char **argv)
 			struct be_node *c_tr_n = ag->nodes[i];
 
 			if (c_tr_n != BE_STR) {
-				fprintf(stderr, "WARN: tracker %zu:%zu is not a str.\n", i, ig);
+				fprintf(stderr,
+					"WARN: tracker %zu:%zu is not a"
+					"str.\n",
+					i, ig);
 				continue;
 			}
 
@@ -122,7 +127,8 @@ int del_fn(struct be_node *t, int argc, char **argv)
 	}
 
 done_fail:
-	fprintf(stderr, "WARN: failed to find tracker '%s' for removal.\n", tracker);
+	fprintf(stderr, "WARN: failed to find tracker '%s' for removal.\n",
+			tracker);
 	return 2;
 }
 
@@ -199,6 +205,48 @@ int add1_fn(struct be_node *t, int argc, char **argv)
 	return 2;
 }
 
+static int write_be_file(struct be_node *n, char *fn)
+{
+	FILE *fp = fopen(fn, "w");
+	if (!fp) {
+		perror(0);
+		return -1;
+	}
+
+	be_write(n, fp);
+
+	fclose(fp);
+
+	return 2;
+}
+
+static int write_be(struct be_node *tf, char *tn, int argc, char **argv)
+{
+	char opt = argv[0][2];
+	switch(opt) {
+	case '-':
+		be_write(tf, stdout);
+		break;
+	case 'f':
+		if (argc < 2) {
+			FN_USE("option -wf requires filename arg\n");
+			return -1;
+		}
+		if (write_be_file(tf, argv[1]) >= 0)
+			return 2;
+		else
+			return -1;
+	case '\0':
+		if (write_be_file(tf, tn) >= 0)
+			return 2;
+		else
+			return -1;
+	default:
+		return -1;
+	}
+	return 2;
+}
+
 static int t_show(struct be_node *tf, int argc, char **argv)
 {
 	if (argc > 1) {
@@ -228,7 +276,7 @@ static int t_show(struct be_node *tf, int argc, char **argv)
 	}
 }
 
-static int t_proc(struct be_node *t, int argc, char **argv)
+static int t_proc(struct be_node *t, char *tn, int argc, char **argv)
 {
 	if (argc == 0) {
 		// show current trackers.
@@ -253,6 +301,9 @@ static int t_proc(struct be_node *t, int argc, char **argv)
 			break;
 		case 'p':
 			ret = t_show(t, argc, argv);
+			break;
+		case 'w':
+			ret = write_be(t, tn, argc, argv);
 			break;
 		default:
 			fprintf(stderr, "Bad option '%c'.\n", *cur_opt);
@@ -303,10 +354,10 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Failed to read entire file, %zi.\n", read);
 		return 1;
 	}
-
+	fclose(tf);
 	const char *ep;
 	struct be_node *tf_be = bdecode(tf_t, tf_sz, &ep);
 
 	//char *spec = argv[2];
-	return t_proc(tf_be, argc-2, argv+2);
+	return t_proc(tf_be, torrent, argc-2, argv+2);
 }

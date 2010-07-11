@@ -20,7 +20,8 @@ clean :
 	$(RM) rwt $(OBJ)
 
 test : rwt
-	./rwt test.torrent -p '*' -a 'new_tracker_omg' -p '*'
+	./rwt test.torrent -a 'new_tracker_omg' -p '*' -wf out.torrent
+	./rwt out.torrent -p '*'
 
 rebuild: | clean build
 retest: | rebuild test
