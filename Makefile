@@ -17,7 +17,7 @@ rwt : $(OBJ)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean :
-	$(RM) rwt $(OBJ)
+	$(RM) rwt out.* $(OBJ)
 
 test : rwt
 	./rwt test.torrent -a 'new_tracker_omg' -p '*' -wf out.torrent
