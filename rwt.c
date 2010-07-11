@@ -9,9 +9,14 @@
 static const char usage_str[] =
 "usage: %s <torrent> [options]\n"
 "options:\n"
-"	-p dict_key     print torrent\n"
-"	-a tracker      add tracker\n"
-"	-d tracker      del tracker\n";
+"   -p dict_key     print torrent\n"
+"   -a tracker      add tracker\n"
+"   -d tracker      del tracker\n"
+"   -w[mode]        write torrent to a file\n"
+"       modes:\n"
+"           f filename    to filename\n"
+"           -             to stdout\n"
+"              (blank)    to original torrent\n";
 
 
 #define FN_USE(...) do {                  \
