@@ -21,7 +21,7 @@ clean :
 
 test : rwt
 	$(RM) out.*
-	./rwt test.torrent -a 'new_tracker_omg' -p '*' -wf out.torrent
+	./rwt test.torrent -p '*' -a 'new_tracker_omg' -p '*' -wf out.torrent
 	./rwt out.torrent -p '*'
 
 rebuild: | clean build

@@ -44,9 +44,9 @@ static void be_write_dict(struct be_dict *dict, FILE *out)
 	fputc('d', out);
 	size_t i;
 	for(i = 0; i < dict->len; i++) {
-		struct be_str *bstr = dict->keys[i];
+		struct be_str *bstr = dict->pairs[i].key;
 		be_write_str(bstr, out);
-		be_write(dict->vals[i], out);
+		be_write(dict->pairs[i].val, out);
 	}
 	fputc('e', out);
 }
@@ -108,11 +108,11 @@ void be_print_dict(struct be_dict *dict, FILE *out, size_t indent)
 	size_t i;
 	for(i = 0; i < dict->len; i++) {
 		spaces(indent + 1, out);
-		struct be_str *bstr = dict->keys[i];
+		struct be_str *bstr = dict->pairs[i].key;
 		fprintf(out, "%zu:", bstr->len);
 		fwrite(bstr->data, bstr->len, 1, out);
 		fputc(':', out);
-		be_print_node(dict->vals[i], out, indent + 1);
+		be_print_node(dict->pairs[i].val, out, indent + 1);
 	}
 }
 
@@ -169,7 +169,7 @@ int be_str_cmp(const struct be_str *a1, const struct be_str *a2)
 	}
 }
 
-struct be_node *be_lookup(const struct be_node *n, char *str)
+struct be_kv_pair *be_lookup(const struct be_node *n, char *str)
 {
 	if (n->type != BE_DICT) {
 		fprintf(stderr, "attempted lookup on non-dict node.\n");
@@ -182,74 +182,116 @@ struct be_node *be_lookup(const struct be_node *n, char *str)
 	return be_dict_lookup(dict, &s);
 }
 
-struct be_node *be_find(struct be_node *n,
+struct be_node *be_find_insert(struct be_node *n,
 		char *key, struct be_node *val)
 {
 	if (n->type != BE_DICT) {
-		fprintf(stderr, "attempted lookup on non-dict node.\n");
+		fprintf(stderr, "ERR: attempted lookup on non-dict node.\n");
 		return 0;
 	}
 	
 	struct be_dict *dict = n->u.d;
-	struct be_str s = { strlen(key), key };
-	return be_dict_find(dict, &s, val);
+	struct be_str skey = { strlen(key), key };
+	return be_dict_find_insert(dict, &skey, val)->val;
 }
 
-/**
+/** search with insertion.
  * Look up key in dict.
  * If found:
- * 	return a pointer to the val the already exsisting key
- * 	is paired with.
+ * 	return a pointer to the pair already exsisting key
+ * 	is contained in.
  * Else if not found:
  * 	If val is non-null, insert the key:val pair and return
- * 		a pointer to the inserted val
+ * 		a pointer to the inserted pair
  * 	Otherwise return 0.
  *
  * On error: returns 0.
  */
-struct be_node *be_dict_find(struct be_dict *dict, 
+struct be_kv_pair *be_dict_find_insert(struct be_dict *dict, 
 		struct be_str *key, struct be_node *val)
 {
 	size_t i;
-	for(i =0; i < dict->len; i++) {
-		const struct be_str *lkey = dict->keys[i];
+	for(i = 0; i < dict->len; i++) {
+		struct be_kv_pair *lpair = dict->pairs + i;
 
-		if (!be_str_cmp( lkey, key))
-			return dict->vals[i];
+		if (!be_str_cmp(lpair->key, key))
+			return lpair;
 	}
-
-	if (!val)
-		return 0;
 
 	/* FIXME: all the stuff above this point is duplicated from 
 	 * be_dict_lookup */
 
 	dict->len = i;
-	dict->keys = realloc(dict->keys, i * sizeof(*dict->keys));
-	dict->vals = realloc(dict->vals, i * sizeof(*dict->vals));
+	dict->pairs = realloc(dict->pairs, i * sizeof(*dict->pairs));
 
-	if (!dict->keys || !dict->vals)
+	if (!dict->pairs)
 		return 0;
 
 	/* FIXME: is appending to the end acceptable? */
-	dict->keys[i] = key;
-	dict->vals[i] = val;
+	dict->pairs[i].key = key;
+	dict->pairs[i].val = val;
 
-	return val;
+	return dict->pairs + i;
+}
+
+
+/** search with removal.
+ */
+struct be_kv_pair *be_dict_find_remove(struct be_dict *dict,
+		const struct be_str *key)
+{
+	size_t i;
+	for (i = 0; i < dict->len; i++) {
+		struct be_kv_pair *lpair = dict->pairs + i;
+		const struct be_str *lkey = lpair->key;
+		const ssize_t diff = lkey->len - key->len;
+		if (!diff) {
+			const size_t cmp_len = diff > 0 ? lkey->len : key->len;
+			const int x = memcmp(lkey->data, key->data, cmp_len);
+			if (!x) {
+				struct be_kv_pair *ppair = dict->pairs + i;
+				dict->len --;
+				memmove(ppair, ppair + 1, dict->len - i);
+				dict->pairs = realloc(dict->pairs,
+						dict->len *
+						sizeof(*dict->pairs));
+				return lpair;
+			}
+		}
+	}
+	
+	return 0;
+}
+
+struct be_str *be_str_mk(size_t len, char *str)
+{
+	struct be_str *bs = malloc(sizeof(*bs));
+	if (bs) {
+		bs->len = len;
+		bs->data = str;
+	}
+	return bs;
+}
+
+struct be_str *be_str_mk_cstr(char *str)
+{
+	return be_str_mk(strlen(str), str);
 }
 
 /* Returns the first value with a matching key, 0 if not found. */
-struct be_node *be_dict_lookup(const struct be_dict *dict,
+struct be_kv_pair *be_dict_lookup(const struct be_dict *dict,
 		const struct be_str *key)
 {
 	size_t i;
 	for(i = 0; i < dict->len; i++) {
-		const struct be_str *lkey = dict->keys[i];
-		ssize_t diff = lkey->len - key->len;
+		struct be_kv_pair *lpair = dict->pairs + i;
+		const struct be_str *lkey = lpair->key;
+		const ssize_t diff = lkey->len - key->len;
 		if(!diff) {
-			int x = memcmp(lkey->data, key->data, key->len);
+			const size_t cmp_len = diff > 0 ? lkey->len : key->len;
+			const int x = memcmp(lkey->data, key->data, cmp_len);
 			if (!x)
-				return dict->vals[i];
+				return lpair;
 		}
 	}
 	
@@ -379,14 +421,12 @@ struct be_dict *bdecode_dict(const char *estr, size_t len, const char **ep)
 	len --;
 
 	struct be_dict *dict = malloc(sizeof(*dict));
-	dict->keys = 0;
-	dict->vals = 0;
 	dict->len = 0;
+	dict->pairs = 0;
 
 	for(;;) {
 		if (len <= 0) {
-			free(dict->keys);
-			free(dict->vals);
+			free(dict->pairs);
 			free(dict);
 			DIE("dict ran out.");
 			*ep = ppos;
@@ -399,19 +439,17 @@ struct be_dict *bdecode_dict(const char *estr, size_t len, const char **ep)
 		}
 
 		dict->len++;
-		dict->keys = realloc(dict->keys, 
-				sizeof(dict->keys) * dict->len);
-		dict->vals = realloc(dict->vals, 
-				sizeof(dict->vals) * dict->len);
+		dict->pairs = realloc(dict->pairs, 
+				sizeof(*dict->pairs) * dict->len);
 
 		/* now decode string */
-		dict->keys[dict->len - 1] = bdecode_str(ppos, len, ep);
+		dict->pairs[dict->len - 1].key = bdecode_str(ppos, len, ep);
 
 		len -= *ep - ppos;
 		ppos = *ep;
 
 		/* decode node */
-		dict->vals[dict->len - 1] = bdecode(ppos, len, ep);
+		dict->pairs[dict->len - 1].val = bdecode(ppos, len, ep);
 
 		len -= *ep - ppos;
 		ppos = *ep;

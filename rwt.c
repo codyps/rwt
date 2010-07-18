@@ -32,7 +32,7 @@ static void usage(char *name)
 int del_fn(struct be_node *t, int argc, char **argv)
 {
 	if (argc < 1) {
-		FN_USE("need 1 tracker to add");
+		FN_USE("need 1 tracker to delete");
 		return -1;
 	}
 
@@ -48,75 +48,61 @@ int del_fn(struct be_node *t, int argc, char **argv)
 	n_tr->type = BE_STR;
 	n_tr->u.s = tr;
 
-	struct be_node *a = be_find(t, "announce", n_tr);
-	if (!a) {
-		free(tr);
-		free(n_tr);
-		fprintf(stderr, "ERR: %s\n", strerror(errno));
-		return -1;
-	} else if (a == n_tr) {
-		fprintf(stderr, "DEL: '%s' => 'announce'.\n", tracker);
-		return 2;
+
+	struct be_kv_pair *ap = be_lookup(t, "announce");
+	if (!ap) {
+		fprintf(stderr, "DEL: 'announce' non-exsistent, skipping.\n");
 	} else {
+		struct be_node *a = ap->val;
 		fprintf(stderr, "DEL: 'announce' already used.\n");
-		/* TODO: check if identical to the one we are adding? */
+		if (a->type == BE_STR) {
+			if (!be_str_cmp(a->u.s, tr)) {
+				/* TODO REMOVE IT */
 
+			}
+		} else {
+			/* XXX: WHAT?? */
+		}
 	}
 
-	struct be_list *new_al = malloc(sizeof(*new_al));
-	new_al->len = 0;
-	new_al->nodes = 0;
-
-	struct be_node *new_al_n = malloc(sizeof(*new_al_n));
-	new_al_n->type = BE_LIST;
-	new_al_n->u.l = new_al;
-
-	struct be_node *al_n = be_find(t, "announce-list", new_al_n);
-	if (!al_n) {
-		fprintf(stderr, "ERR: %s\n", strerror(errno));
-		return -1;
-	} else if (al_n == new_al_n) {
-		fprintf(stderr, "DEL: created 'announce-list'.\n");
-	} else {
-		free(new_al);
-		free(new_al_n);
-		fprintf(stderr, "DEL: 'announce-list' already exsists.\n");
+	struct be_kv_pair *al_p = be_lookup(t, "announce-list");
+	if (!al_p) {
+		fprintf(stderr, "DEL: 'announce-list' non-exsistent.\n");
+		fprintf(stderr, "DEL: nothing to remove.\n");
+		goto done_succ;
 	}
+	struct be_node *al_n = al_p->val;
+	fprintf(stderr, "DEL: 'announce-list' already exsists.\n");
 
 	if (al_n->type != BE_LIST) {
-		fprintf(stderr, "WARN: 'announce-list' not a list.\n");
+		fprintf(stderr, "ERR: 'announce-list' not a list.\n");
 		goto done_fail;
 	}
 
 	struct be_list *al = al_n->u.l;
-
-	size_t i;
-	for(i = 0; i < al->len; i++) {
-
-		struct be_node *ag_n = al->nodes[i];
+	struct be_node **ag_n;
+	for_each_list_node(al, ag_n) {
 	
-		if (ag_n->type != BE_LIST) {
+		if ((*ag_n)->type != BE_LIST) {
 			fprintf(stderr, 
 				"WARN: announce group %zu is not a list.\n",
-				i);
+				list_node_index(al, ag_n));
 			continue;
 		}
 
-		struct be_list *ag = ag_n->u.l;
-
-		size_t ig;
-		for(ig = 0; ig < ag->len; i++) {
-			struct be_node *c_tr_n = ag->nodes[i];
-
+		struct be_list *ag = (*ag_n)->u.l;
+		struct be_node **c_tr_n;
+		for_each_list_node(ag, c_tr_n) {
 			if (c_tr_n != BE_STR) {
 				fprintf(stderr,
 					"WARN: tracker %zu:%zu is not a"
 					"str.\n",
-					i, ig);
+					list_node_index(al, ag_n),
+					list_node_index(ag, c_tr_n));
 				continue;
 			}
 
-			struct be_str *c_tr = c_tr_n->u.s;
+			struct be_str *c_tr = (*c_tr_n)->u.s;
 
 
 			/* TODO: operate on c_tr */
@@ -125,6 +111,9 @@ int del_fn(struct be_node *t, int argc, char **argv)
 			}
 		}
 	}
+
+done_succ:
+	return 2;
 
 done_fail:
 	fprintf(stderr, "WARN: failed to find tracker '%s' for removal.\n",
@@ -151,7 +140,7 @@ int add1_fn(struct be_node *t, int argc, char **argv)
 	n_tr->type = BE_STR;
 	n_tr->u.s = tr;
 
-	struct be_node *a = be_find(t, "announce", n_tr);
+	struct be_node *a = be_find_insert(t, "announce", n_tr);
 	if (!a) {
 		free(tr);
 		free(n_tr);
@@ -174,14 +163,18 @@ int add1_fn(struct be_node *t, int argc, char **argv)
 	new_al_n->type = BE_LIST;
 	new_al_n->u.l = new_al;
 
-	struct be_node *al_n = be_find(t, "announce-list", new_al_n);
+	struct be_node *al_n = be_find_insert(t, "announce-list", new_al_n);
 	if (!al_n) {
 		fprintf(stderr, "ERR: %s\n", strerror(errno));
+		free(new_al);
+		free(new_al_n);
 		return -1;
 	} else if (al_n == new_al_n) {
 		fprintf(stderr, "ADD: created 'announce-list'.\n");
 	} else {
 		fprintf(stderr, "ADD: 'announce-list' already exsists.\n");
+		/* new_al_n is reused */;
+		/* new_al is reused below */
 	}
 
 	if (al_n->type != BE_LIST) {
@@ -262,7 +255,8 @@ static int t_show(struct be_node *tf, int argc, char **argv)
 
 		struct be_str s = { strlen(argv[1]), argv[1] };
 
-		struct be_node *val = be_dict_lookup(d, &s);
+		struct be_kv_pair *pair = be_dict_lookup(d, &s);
+		struct be_node *val = pair->val;
 		if (val) {
 			be_print(val, stdout);
 			return 2;
