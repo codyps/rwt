@@ -61,7 +61,7 @@ int del_fn(struct be_node *t, int argc, char **argv)
 
 			}
 		} else {
-			/* XXX: WHAT?? */
+			fprintf(stderr, "WARN: 'announce' is not a str\n");
 		}
 	}
 
@@ -93,7 +93,7 @@ int del_fn(struct be_node *t, int argc, char **argv)
 		struct be_list *ag = (*ag_n)->u.l;
 		struct be_node **c_tr_n;
 		for_each_list_node(ag, c_tr_n) {
-			if (c_tr_n != BE_STR) {
+			if ((*c_tr_n)->type != BE_STR) {
 				fprintf(stderr,
 					"WARN: tracker %zu:%zu is not a"
 					"str.\n",
