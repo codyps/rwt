@@ -27,17 +27,21 @@ struct be_dict {
 
 struct be_list {
 	size_t len;
-	struct be_node **nodes;
+	struct be_node *nodes;
+};
+
+typedef long long be_int_t;
+
+union be_item {
+	be_int_t i;
+	struct be_list *l;
+	struct be_dict *d;
+	struct be_str *s;
 };
 
 struct be_node {
 	enum be_type type;
-	union {
-		long long i;
-		struct be_list *l;
-		struct be_dict *d;
-		struct be_str *s;
-	} u;
+	union be_item u;
 };
 
 /* where node is (struct be_node *) */
@@ -47,6 +51,10 @@ struct be_node {
 
 #define list_node_index(list, node) \
 	((list)->nodes - (node))
+
+#define for_each_dict_pair(dict, pair) \
+	for((pair) = (dict)->pairs; (pair) < ((dict)->pairs + (dict)->len); \
+			(pair)++)
 
 /* be_dict_find_insert wrapper.
  */
@@ -59,7 +67,6 @@ struct be_node *be_find_insert(struct be_node *n,
 struct be_kv_pair *be_lookup(const struct be_node *n, char *str);
 
 int be_str_cmp(const struct be_str *a1, const struct be_str *a2);
-
 
 struct be_str *be_str_mk_cstr(char *cstr);
 struct be_str *be_str_mk(size_t len, char *str);

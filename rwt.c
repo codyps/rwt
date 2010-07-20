@@ -80,20 +80,20 @@ int del_fn(struct be_node *t, int argc, char **argv)
 	}
 
 	struct be_list *al = al_n->u.l;
-	struct be_node **ag_n;
+	struct be_node *ag_n;
 	for_each_list_node(al, ag_n) {
 	
-		if ((*ag_n)->type != BE_LIST) {
+		if (ag_n->type != BE_LIST) {
 			fprintf(stderr, 
 				"WARN: announce group %zu is not a list.\n",
 				list_node_index(al, ag_n));
 			continue;
 		}
 
-		struct be_list *ag = (*ag_n)->u.l;
-		struct be_node **c_tr_n;
+		struct be_list *ag = ag_n->u.l;
+		struct be_node *c_tr_n;
 		for_each_list_node(ag, c_tr_n) {
-			if ((*c_tr_n)->type != BE_STR) {
+			if (c_tr_n->type != BE_STR) {
 				fprintf(stderr,
 					"WARN: tracker %zu:%zu is not a"
 					"str.\n",
@@ -102,7 +102,7 @@ int del_fn(struct be_node *t, int argc, char **argv)
 				continue;
 			}
 
-			struct be_str *c_tr = (*c_tr_n)->u.s;
+			struct be_str *c_tr = c_tr_n->u.s;
 
 
 			/* TODO: operate on c_tr */
@@ -121,7 +121,17 @@ done_fail:
 	return 2;
 }
 
-int add1_fn(struct be_node *t, int argc, char **argv)
+#if 0
+static int set_announce(struct be_node *t, char *tracker, size_t t_len)
+{
+	struct be_str strack = { t_len, tracker };
+	struct be_node strackn = { BE_STR, strack };
+	return 0
+}
+#endif
+
+
+static int add1_fn(struct be_node *t, int argc, char **argv)
 {
 	if (argc < 1) {
 		FN_USE("need 1 tracker to add");
@@ -151,8 +161,6 @@ int add1_fn(struct be_node *t, int argc, char **argv)
 		return 2;
 	} else {
 		fprintf(stderr, "ADD: 'announce' already used.\n");
-		/* TODO: check if identical to the one we are adding? */
-
 	}
 
 	struct be_list *new_al = malloc(sizeof(*new_al));
@@ -171,9 +179,10 @@ int add1_fn(struct be_node *t, int argc, char **argv)
 		return -1;
 	} else if (al_n == new_al_n) {
 		fprintf(stderr, "ADD: created 'announce-list'.\n");
+		/* FIXME: this is not currently handled properly. */
 	} else {
 		fprintf(stderr, "ADD: 'announce-list' already exsists.\n");
-		/* new_al_n is reused */;
+		free(new_al_n);
 		/* new_al is reused below */
 	}
 
@@ -191,9 +200,10 @@ int add1_fn(struct be_node *t, int argc, char **argv)
 
 	new_al->len = 1;
 	new_al->nodes = malloc(sizeof(*new_al->nodes));
-	new_al->nodes[0] = n_tr;
+	new_al->nodes[0] = *n_tr;
 
-	al->nodes[al->len - 1] = new_al_n;
+	al->nodes[al->len - 1].type = BE_LIST;
+	al->nodes[al->len - 1].u.l  = new_al;
 
 	return 2;
 }

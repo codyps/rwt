@@ -56,7 +56,7 @@ static void be_write_list(struct be_list *list, FILE *out)
 	size_t i;
 	fputc('l', out);
 	for(i = 0; i < list->len; i++) {
-		be_write(list->nodes[i], out);
+		be_write(list->nodes + i, out);
 	}
 	fputc('e', out);
 }
@@ -122,7 +122,7 @@ void be_print_list(struct be_list *list, FILE *out, size_t indent)
 	fputc('l', out);
 	for(i = 0; i < list->len; i++) {
 		fputc('\n', out);
-		be_print_indent(list->nodes[i], out, indent + 1);
+		be_print_indent(list->nodes + i, out, indent + 1);
 	}
 }
 
@@ -332,7 +332,9 @@ struct be_list *bdecode_list(const char *estr, size_t len, const char **ep)
 			l->len ++;
 			l->nodes = realloc(l->nodes, 
 				sizeof(*(l->nodes)) * l->len);
-			l->nodes[l->len - 1] = n;
+			l->nodes[l->len - 1] = *n;
+			/* FIXME: instead, we could allocate from the list itself. */
+			free(n);
 			len -= *ep - ppos;
 			ppos = *ep;
 		} else {
