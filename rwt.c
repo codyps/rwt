@@ -141,23 +141,23 @@ static int add1_fn(struct be_node *t, int argc, char **argv)
 
 	fprintf(stderr, "ADD: '%s'\n", tracker);
 
-	struct be_str *tr = malloc(sizeof(*tr));
-	tr->len = strlen(tracker);
-	tr->data = malloc(tr->len);
-	memcpy(tr->data, tracker, tr->len);
+	struct be_str *tr_raw = malloc(sizeof(*tr_raw));
+	tr_raw->len = strlen(tracker);
+	tr_raw->data = malloc(tr_raw->len);
+	memcpy(tr_raw->data, tracker, tr_raw->len);
 
-	struct be_node *n_tr = malloc(sizeof(*n_tr));
-	n_tr->type = BE_STR;
-	n_tr->u.s = tr;
+	struct be_node *tr_node = malloc(sizeof(*tr_node));
+	tr_node->type = BE_STR;
+	tr_node->u.s = tr_raw;
 
-	struct be_node *a = be_find_insert(t, "announce", n_tr);
+	struct be_node *a = be_find_insert(t, "announce", tr_node);
 	if (!a) {
-		free(tr);
-		free(n_tr);
+		be_free(tr_node);
 		fprintf(stderr, "ERR: %s\n", strerror(errno));
 		return -1;
-	} else if (a == n_tr) {
+	} else if (a == tr_node) {
 		fprintf(stderr, "ADD: '%s' => 'announce'.\n", tracker);
+		be_free(tr_node);
 		return 2;
 	} else {
 		fprintf(stderr, "ADD: 'announce' already used.\n");
@@ -174,6 +174,7 @@ static int add1_fn(struct be_node *t, int argc, char **argv)
 	struct be_node *al_n = be_find_insert(t, "announce-list", new_al_n);
 	if (!al_n) {
 		fprintf(stderr, "ERR: %s\n", strerror(errno));
+		be_free(tr_node);
 		free(new_al);
 		free(new_al_n);
 		return -1;
@@ -188,7 +189,9 @@ static int add1_fn(struct be_node *t, int argc, char **argv)
 
 	if (al_n->type != BE_LIST) {
 		fprintf(stderr, "ERR: 'announce-list' not a list.\n");
-
+		be_free(tr_node);
+		free(new_al_n);
+		free(new_al);
 		/* TODO: remove non list and add list on force tag? */
 		return -1;
 	}
@@ -200,7 +203,8 @@ static int add1_fn(struct be_node *t, int argc, char **argv)
 
 	new_al->len = 1;
 	new_al->nodes = malloc(sizeof(*new_al->nodes));
-	new_al->nodes[0] = *n_tr;
+	new_al->nodes[0] = *tr_node;
+	free(tr_node);
 
 	al->nodes[al->len - 1].type = BE_LIST;
 	al->nodes[al->len - 1].u.l  = new_al;
@@ -364,6 +368,7 @@ int main(int argc, char **argv)
 
 	//char *spec = argv[2];
 	int ret = t_proc(tf_be, torrent, argc-2, argv+2);
+	free(tf_t);
 	be_free(tf_be);
 	return ret;
 }

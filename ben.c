@@ -272,8 +272,13 @@ struct be_node *be_find_insert(struct be_node *n,
 	size_t slen = strlen(key);
 	char *s = malloc(slen);
 	memcpy(s, key, slen);
-	struct be_str skey = { slen, s};
-	return be_dict_find_insert(dict, &skey, val)->val;
+
+	/* FIXME: should this be heap allocated? */
+	struct be_str skey = { slen, s };
+	struct be_kv_pair *kv =  be_dict_find_insert(dict, &skey, val);
+	if (kv->val != val)
+		free(s);
+	return kv->val;
 }
 
 /** search with insertion.
