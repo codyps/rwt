@@ -33,6 +33,7 @@ static void be_write_str(struct be_str *str, FILE *out)
 }
 
 
+void be_print_str(struct be_str *str, FILE *out);
 static void be_write_int(long long i, FILE *out)
 {
 	fprintf(out, "i%llde", i);
@@ -89,6 +90,83 @@ void spaces(size_t num, FILE *out)
 		fputc(' ', out);
 	}
 }
+
+void be_str_free(struct be_str *s)
+{
+	free(s->data);
+	free(s);
+}
+
+void be_dict_free(struct be_dict *d)
+{
+	struct be_kv_pair *kv;
+	for_each_dict_pair(d, kv) {
+		be_free(kv->val);
+		be_str_free(kv->key);
+	}
+
+	free(d->pairs);
+	free(d);
+}
+
+/* Identical to be_free, except n is not freeed.
+ * This became needed due to the slight abnormality in the manner of
+ * struct be_list's construction.
+ */
+void be_list_free(struct be_list *l);
+void be_free_in_list(struct be_node *n)
+{
+	switch(n->type) {
+	case BE_STR:
+		be_str_free(n->u.s);
+		break;
+	case BE_INT:
+		break;
+	case BE_DICT:
+		be_dict_free(n->u.d);
+		break;
+	case BE_LIST:
+		be_list_free(n->u.l);
+		break;
+	default:
+		DIE("FREE: unknown type %d", n->type);
+	}
+}
+
+void be_list_free(struct be_list *l)
+{
+	struct be_node *n;
+	for_each_list_node(l, n) {
+		be_free_in_list(n);
+	}
+
+	free(l->nodes);
+	free(l);
+}
+
+void be_free(struct be_node *n)
+{
+	switch(n->type) {
+	case BE_STR:
+		be_str_free(n->u.s);
+		free(n);
+		break;
+	case BE_INT:
+		free(n);
+		break;
+	case BE_DICT:
+		be_dict_free(n->u.d);
+		free(n);
+		break;
+	case BE_LIST:
+		be_list_free(n->u.l);
+		free(n);
+		break;
+	default:
+		DIE("FREE: unknown type %d", n->type);
+	}
+}
+
 
 void be_print_str(struct be_str *str, FILE *out)
 {
@@ -191,7 +269,10 @@ struct be_node *be_find_insert(struct be_node *n,
 	}
 	
 	struct be_dict *dict = n->u.d;
-	struct be_str skey = { strlen(key), key };
+	size_t slen = strlen(key);
+	char *s = malloc(slen);
+	memcpy(s, key, slen);
+	struct be_str skey = { slen, s};
 	return be_dict_find_insert(dict, &skey, val)->val;
 }
 

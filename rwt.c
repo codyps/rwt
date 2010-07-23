@@ -130,7 +130,6 @@ static int set_announce(struct be_node *t, char *tracker, size_t t_len)
 }
 #endif
 
-
 static int add1_fn(struct be_node *t, int argc, char **argv)
 {
 	if (argc < 1) {
@@ -144,7 +143,8 @@ static int add1_fn(struct be_node *t, int argc, char **argv)
 
 	struct be_str *tr = malloc(sizeof(*tr));
 	tr->len = strlen(tracker);
-	tr->data = tracker;
+	tr->data = malloc(tr->len);
+	memcpy(tr->data, tracker, tr->len);
 
 	struct be_node *n_tr = malloc(sizeof(*n_tr));
 	n_tr->type = BE_STR;
@@ -363,5 +363,7 @@ int main(int argc, char **argv)
 	struct be_node *tf_be = bdecode(tf_t, tf_sz, &ep);
 
 	//char *spec = argv[2];
-	return t_proc(tf_be, torrent, argc-2, argv+2);
+	int ret = t_proc(tf_be, torrent, argc-2, argv+2);
+	be_free(tf_be);
+	return ret;
 }

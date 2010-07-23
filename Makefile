@@ -11,7 +11,7 @@ all: build
 build: rwt
 
 rwt : $(OBJ)
-	$(LD) -o $@ $^
+	$(LD) $(CFLAGS) -o $@ $^
 
 %.c.o : %.c
 	$(CC) $(CFLAGS) -c -o $@ $<

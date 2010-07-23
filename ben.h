@@ -56,6 +56,10 @@ struct be_node {
 	for((pair) = (dict)->pairs; (pair) < ((dict)->pairs + (dict)->len); \
 			(pair)++)
 
+#define for_each_cont_x(x, cont, item) \
+	for((item) = (cont)->x; (item) < ((cont)->x + (cont)->len); \
+			(item)++)
+
 /* be_dict_find_insert wrapper.
  */
 struct be_node *be_find_insert(struct be_node *n,
@@ -109,6 +113,9 @@ struct be_kv_pair *be_dict_lookup(const struct be_dict *dict,
  * point to the end of the outermost parsed node
  */
 struct be_node *bdecode(const char *estr, size_t len, const char **ep);
+
+/* Frees all memory associated with n */
+void be_free(struct be_node *n);
 
 /* Writes pretty printed data to out */
 void be_print(struct be_node *be, FILE *out);
